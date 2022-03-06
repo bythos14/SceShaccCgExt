@@ -14,7 +14,7 @@ extern "C" void _sceShaccCgHeapFree(void *ptr);
  * 
  */
 
-namespace _shacccg // Keep this stuff out of the global namespace
+namespace // Unnamed namespace
 {
     enum Color : std::uint8_t
     {
@@ -942,8 +942,6 @@ namespace _shacccg // Keep this stuff out of the global namespace
         }
     };
 }
-
-using namespace _shacccg;
 
 extern "C" void ProcessPragma_Warning_PushWarningState(uint8_t *object)
 {
