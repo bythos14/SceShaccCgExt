@@ -1269,6 +1269,7 @@ static void ProcessPragma_Warning(void *this)
 				ProcessPragma_Skip(this);
 				return;
 			}
+			warningMode = -1; // Reset the warningMode
 		}
 		else
 		{
@@ -1370,6 +1371,7 @@ static void ProcessPragma_Diag(void *this)
 			ProcessPragma_Skip(this);
 			return;
 		}
+		warningMode = -1; // Reset the warning mode
 	}
 	else
 	{
