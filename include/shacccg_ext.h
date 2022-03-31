@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-void PatchShacc(SceUID moduleId);
+int PatchShacc(SceUID moduleId);
 
 void ReleasePatches();
 

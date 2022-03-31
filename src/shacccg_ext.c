@@ -44,7 +44,7 @@ static void *FUN_811fe7a4_patch(uint32_t param_1, uint32_t param_2, uint32_t par
 	return TAI_CONTINUE(void *, hookRef, param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8);
 }
 
-void PatchShacc(SceUID moduleId)
+int PatchShacc(SceUID moduleId)
 {
 	SceKernelModuleInfo moduleInfo = {0};
 	moduleInfo.size = sizeof(moduleInfo);
@@ -110,10 +110,10 @@ void PatchShacc(SceUID moduleId)
 	if (hookId < 0)
 		goto fail;
 
-	return;
+	return 0;
 fail:
 	ReleasePatches();
-	return;
+	return -1;
 }
 
 void ReleasePatches()
