@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <taihen.h>
 
 #include <psp2/kernel/modulemgr.h>
@@ -43,6 +44,21 @@ static bool LoadInternalString_patch(void *param_1, bool nostdlib)
 
 	if (internalSourceFile != NULL && !LoadInternalString(param_1, internalSourceFile->text))
 		return false;
+		
+	FILE *fd = fopen("ux0:data/shaders/custom_intrinsics.cg", "rb");
+	if (fd)
+	{
+		size_t size;
+		fseek(fd, 0, SEEK_END);
+		size = ftell(fd);
+		fseek(fd, 0, SEEK_SET);
+
+		char *buf = malloc(size + 1);
+		fread(buf, size, 1, fd);
+		buf[size] = '\0';
+		fclose(fd);
+		LoadInternalString(param_1, buf);
+	}
 
 	return true;
 }
@@ -53,6 +69,60 @@ static void *FUN_811fe7a4_patch(uint32_t param_1, uint32_t param_2, uint32_t par
 	*(uint8_t *)(param_7 + 0x14) = 1;									   // Extension support
 
 	return TAI_CONTINUE(void *, hookRef, param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8);
+}
+
+
+void PatchNativeColor(SceUID moduleId, void *segment0)
+{
+	SceUID injectId[5];
+
+	uint16_t patch[] = 
+	{
+		// Offset 0x11D53C
+		0xF240, 0x0900, // movw r9, #0x...
+		0xF2C0, 0x0900, // movt r9, #0x...
+		0xE006,         // b #0x10
+		
+		// Offset 0x11D55A
+		0xE012, // b #0x28
+
+		// Offset 0x11D59E
+		0xF240, 0x0300, // movw r3, #0x...
+		0xBF00,         // nop
+		
+		// Offset 0x11D5CE
+		0xE7C1, // b -#0x7A
+
+		// Offset 0x11D60C
+		0xE7DD  // b -#0x42
+	};
+
+	void *addr = segment0 + 0x2FF23C;
+	ENCODE_MOV_IMM(patch[0], patch[1], (uint32_t)(addr) & 0xFFFF);
+	ENCODE_MOV_IMM(patch[2], patch[3], (uint32_t)(addr) >> 16);
+
+	injectId[0] = taiInjectData(moduleId, 0, 0x11D53C, &patch[0], sizeof(uint16_t) * 5);
+	if (injectId[0] < 0)
+		goto fail;
+	injectId[1] = taiInjectData(moduleId, 0, 0x11D55A, &patch[5], sizeof(uint16_t)); 
+	if (injectId[1] < 0)
+		goto fail;
+	injectId[2] = taiInjectData(moduleId, 0, 0x11D59E, &patch[6], sizeof(uint16_t) * 3);
+	if (injectId[2] < 0)
+		goto fail;
+	injectId[3] = taiInjectData(moduleId, 0, 0x11D5CE, &patch[9], sizeof(uint16_t));
+	if (injectId[3] < 0)
+		goto fail;
+	injectId[4] = taiInjectData(moduleId, 0, 0x11D60C, &patch[10], sizeof(uint16_t));
+	if (injectId[4] < 0)
+		goto fail;
+
+	sceClibPrintf("Successfully applied Framebuffer fetch patches\n");
+	return;
+
+fail:
+	sceClibPrintf("Failed to apply Framebuffer fetch patches\n");
+	return;
 }
 
 void sceShaccCgExtSetInternalSourceFile(const SceShaccCgSourceFile *sourceFile)
@@ -120,9 +190,9 @@ int sceShaccCgExtEnableExtensions()
 		0x4718          // bx r3
 	};
 
-	ENCODE_MOV_IMM(internalSourcePatch[0], internalSourcePatch[1], (uint32_t)(LoadInternalString_patch)&0xFFFF);
+	ENCODE_MOV_IMM(internalSourcePatch[0], internalSourcePatch[1], (uint32_t)(LoadInternalString_patch) & 0xFFFF);
 	ENCODE_MOV_IMM(internalSourcePatch[2], internalSourcePatch[3], (uint32_t)(LoadInternalString_patch) >> 16);
-	ENCODE_MOV_IMM(pragmaPatch[0], pragmaPatch[1], (uint32_t)(ProcessPragma_patch)&0xFFFF);
+	ENCODE_MOV_IMM(pragmaPatch[0], pragmaPatch[1], (uint32_t)(ProcessPragma_patch) & 0xFFFF);
 	ENCODE_MOV_IMM(pragmaPatch[2], pragmaPatch[3], (uint32_t)(ProcessPragma_patch) >> 16);
 	ENCODE_MOV_IMM(moduleUnloadPatch[0], moduleUnloadPatch[1], (uint32_t)(sceShaccCgExtDisableExtensions)&0xFFFF);
 	ENCODE_MOV_IMM(moduleUnloadPatch[2], moduleUnloadPatch[3], (uint32_t)(sceShaccCgExtDisableExtensions) >> 16);
@@ -157,6 +227,7 @@ int sceShaccCgExtEnableExtensions()
 	hookId = taiHookFunctionOffset(&hookRef, moduleId, 0, 0x1FE7A4, 1, FUN_811fe7a4_patch);
 	if (hookId < 0)
 		goto fail;
+	PatchNativeColor(moduleId, moduleInfo.segments[0].vaddr);
 
 	return 0;
 fail:
