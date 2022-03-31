@@ -205,6 +205,9 @@ static void *(*FUN_81009884)();
 static void *(*_HeapAlloc)(void *, size_t);
 static void (*_HeapFree)(void *);
 
+static void (*_AtomicIncrement)(uint32_t *);
+static uint32_t (*_AtomicDecrement)(uint32_t *);
+
 static void GetPragmaFunctionPointers(void *segment0)
 {
 	FUNCTION_PTR(ProcessPragma_PositionInvariant, segment0, 0x30918, 1);
@@ -234,6 +237,9 @@ static void GetPragmaFunctionPointers(void *segment0)
 	FUNCTION_PTR(FUN_81009884, segment0, 0x9884, 1);
 	FUNCTION_PTR(_HeapAlloc, segment0, 0x98B0, 1);
 	FUNCTION_PTR(_HeapFree, segment0, 0x98D0, 1);
+
+	FUNCTION_PTR(_AtomicIncrement, segment0, 0x1D34, 1);
+	FUNCTION_PTR(_AtomicDecrement, segment0, 0x1D48, 1);
 }
 
 void *_sceShaccCgHeapAlloc(size_t size)
@@ -379,7 +385,7 @@ static int ProcessPragma_patch(void *this, int pragmaCode)
 	case DISABLE_BANK_CLASH_ADJ:
 		ProcessPragma_DisableBankClashAdjustment(this);
 		break;
-	default:
+	default: // Unrecognized pragma
 		return 0;
 		break;
 	}

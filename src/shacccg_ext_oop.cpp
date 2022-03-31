@@ -1,11 +1,16 @@
 #include <cstdint>
 #include <cstdlib>
-#include <atomic>
 
 #include <psp2/kernel/clib.h>
 
-extern "C" void *_sceShaccCgHeapAlloc(size_t size);
-extern "C" void _sceShaccCgHeapFree(void *ptr);
+extern "C"
+{
+    // These are defined in shacccg_ext.c
+    void *_sceShaccCgHeapAlloc(size_t size);
+    void _sceShaccCgHeapFree(void *ptr);
+    extern void (*_AtomicIncrement)(uint32_t *);
+    extern uint32_t (*_AtomicDecrement)(uint32_t *);
+}
 
 /**
  * 
@@ -922,22 +927,20 @@ namespace // Unnamed namespace
         WarningContainer() = default;
         WarningContainer(WarningContainer &container) : refCount(0), reset(false), disabledWarnings(container.disabledWarnings), elevatedWarnings(container.elevatedWarnings)  {}
 
-        std::atomic<uint32_t> refCount;
+        uint32_t refCount;
         bool reset;
         set<uint32_t> disabledWarnings;
         set<uint32_t> elevatedWarnings;
 
         WarningContainer *retain()
         {
-            refCount++;
+            _AtomicIncrement(&refCount);
             return this;
         }
 
         void release()
         {
-            refCount--;
-
-            if (refCount == 0)
+            if (_AtomicDecrement(&refCount) == 0)
                 delete this;
         }
     };
