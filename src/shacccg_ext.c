@@ -7,13 +7,14 @@
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/kernel/clib.h>
 
+#include "sce_intrinsics.h"
+
 #define ENCODE_MOV_IMM(inst0, inst1, imm)                              \
 	inst0 |= ((((imm & 0x800) >> 11) << 10) | ((imm & 0xF000) >> 12)); \
 	inst1 |= ((imm & 0xFF) | (((imm & 0x700) >> 8) << 12))
 
 #define FUNCTION_PTR(functionPointer, segmentBase, offset, thumb) functionPointer = (typeof(functionPointer))(((uintptr_t)segmentBase + offset) | thumb)
 
-static const char *customInternals = NULL; // This can be replaced with a custom internal string
 static const char *cgStdLib;
 static bool (*LoadInternalString)(void *, const char *); // FUN_812011ec
 
@@ -27,7 +28,7 @@ static void GetPragmaFunctionPointers(void *segment0);
 
 static bool LoadInternalString_patch(void *param_1, bool nostdlib)
 {
-	if (customInternals != NULL && !LoadInternalString(param_1, customInternals))
+	if (!LoadInternalString(param_1, sce_intrinsics))
 		return false;
 
 	if (!nostdlib && !LoadInternalString(param_1, cgStdLib))
