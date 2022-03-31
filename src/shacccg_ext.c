@@ -1207,8 +1207,6 @@ static bool ProcessPragma_Warning_ApplyWarningMode(void *this, bool diagPragma, 
 static void ProcessPragma_Warning(void *this)
 {
 	PPInput currentInput;
-	int32_t warningMode = -1;
-	int32_t pushPop = -1;
 	char *string;
 
 	PPNext(this);
@@ -1239,59 +1237,54 @@ static void ProcessPragma_Warning(void *this)
 
 		if (sceClibStrcmp(string, "disable") == 0)
 		{
-			warningMode = 0;
+			if (ProcessPragma_Warning_ApplyWarningMode(this, false, 0, -1 /* no delimiter */) == false)
+			{
+				ProcessPragma_Skip(this);
+				return;
+			}
 		}
 		else if (sceClibStrcmp(string, "default") == 0)
 		{
-			warningMode = 1;
+			if (ProcessPragma_Warning_ApplyWarningMode(this, false, 1, -1 /* no delimiter */) == false)
+			{
+				ProcessPragma_Skip(this);
+				return;
+			}
 		}
 		else if (sceClibStrcmp(string, "error") == 0)
 		{
-			warningMode = 2;
+			if (ProcessPragma_Warning_ApplyWarningMode(this, false, 2, -1 /* no delimiter */) == false)
+			{
+				ProcessPragma_Skip(this);
+				return;
+			}
 		}
 		else if (sceClibStrcmp(string, "once") == 0)
 		{
-			warningMode = 3;
+			if (ProcessPragma_Warning_ApplyWarningMode(this, false, 3, -1 /* no delimiter */) == false)
+			{
+				ProcessPragma_Skip(this);
+				return;
+			}
 		}
 		else if (sceClibStrcmp(string, "push") == 0)
 		{
-			pushPop = 0;
+			ProcessPragma_Warning_PushWarningState(this);
 		}
 		else if (sceClibStrcmp(string, "pop") == 0)
 		{
-			pushPop = 1;
+			if (ProcessPragma_Warning_PopWarningState(this) == false)
+			{
+				NoParamError(this, 0x800065);
+				ProcessPragma_Skip(this);
+				return;
+			}
 		}
 		else
 		{
 			SingleParamError(this, 0x800063, string);
 			ProcessPragma_Skip(this);
 			return;
-		}
-
-		if (warningMode != -1)
-		{
-			if (ProcessPragma_Warning_ApplyWarningMode(this, false, warningMode, -1) == false)
-			{
-				ProcessPragma_Skip(this);
-				return;
-			}
-			warningMode = -1; // Reset the warningMode
-		}
-		else
-		{
-			if (pushPop == 0)
-			{
-				ProcessPragma_Warning_PushWarningState(this);
-			}
-			else if (pushPop == 1)
-			{
-				if (ProcessPragma_Warning_PopWarningState(this) == false)
-				{
-					NoParamError(this, 0x800063);
-					ProcessPragma_Skip(this);
-					return;
-				}
-			}
 		}
 
 		PPGetCurrent(&currentInput, this);
@@ -1322,8 +1315,6 @@ static void ProcessPragma_Warning(void *this)
 static void ProcessPragma_Diag(void *this)
 {
 	PPInput currentInput;
-	int32_t warningMode = -1;
-	int32_t pushPop = -1;
 	char *string;
 
 	PPNext(this);
@@ -1349,51 +1340,38 @@ static void ProcessPragma_Diag(void *this)
 
 	if (sceClibStrcmp(string, "suppress") == 0)
 	{
-		warningMode = 0;
+		if (ProcessPragma_Warning_ApplyWarningMode(this, true, 0, 0x1C /* , */) == false)
+		{
+			ProcessPragma_Skip(this);
+			return;
+		}
 	}
 	else if (sceClibStrcmp(string, "error") == 0)
 	{
-		warningMode = 2;
+		if (ProcessPragma_Warning_ApplyWarningMode(this, true, 2, 0x1C /* , */) == false)
+		{
+			ProcessPragma_Skip(this);
+			return;
+		}
 	}
 	else if (sceClibStrcmp(string, "push") == 0)
 	{
-		pushPop = 0;
+		ProcessPragma_Warning_PushWarningState(this);
 	}
 	else if (sceClibStrcmp(string, "pop") == 0)
 	{
-		pushPop = 1;
+		if (ProcessPragma_Warning_PopWarningState(this) == false)
+		{
+			NoParamError(this, 0x800065);
+			ProcessPragma_Skip(this);
+			return;
+		}
 	}
 	else
 	{
 		SingleParamError(this, 0x800063, string);
 		ProcessPragma_Skip(this);
 		return;
-	}
-
-	if (warningMode != -1)
-	{
-		if (ProcessPragma_Warning_ApplyWarningMode(this, true, warningMode, 0x1C) == false)
-		{
-			ProcessPragma_Skip(this);
-			return;
-		}
-		warningMode = -1; // Reset the warning mode
-	}
-	else
-	{
-		if (pushPop == 0)
-		{
-			ProcessPragma_Warning_PushWarningState(this);
-		}
-		else if (pushPop == 1)
-		{
-			if (ProcessPragma_Warning_PopWarningState(this) == false)
-			{
-				NoParamError(this, 0x800063);
-				ProcessPragma_Skip(this);
-				return;
-			}
-		}
 	}
 
 	PPNext(this);
