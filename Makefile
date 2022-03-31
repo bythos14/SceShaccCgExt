@@ -10,8 +10,8 @@ PREFIX  = arm-vita-eabi
 CC       = $(PREFIX)-gcc
 CXX      = $(PREFIX)-g++
 AR       = $(PREFIX)-gcc-ar
-CFLAGS  = -g -Wl,-q -g -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -ftree-vectorize -Wall -Iinclude
-CXXFLAGS  = -g -Wl,-q -O3 -ffast-math -ftree-vectorize -Wall -fno-exceptions -fno-rtti -std=gnu++11 -fpermissive -Iinclude
+CFLAGS  = -Wl,-q -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -Wall -Iinclude
+CXXFLAGS  = -Wl,-q -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -Wall -fno-exceptions -fno-rtti -std=gnu++11 -fpermissive -Iinclude 
 ASFLAGS = $(CFLAGS)
 
 all: $(TARGET).a
