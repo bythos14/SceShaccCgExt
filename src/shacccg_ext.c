@@ -398,7 +398,6 @@ static void ProcessPragma_Loop(void *this)
 	PPInput currentInput;
 	char *string;
 	void (*_SetUnrollPolicy)(void *, int) = (typeof(_SetUnrollPolicy))*(void **)(**(uintptr_t **)(this + 0xc) + 0x8);
-	int unrollPolicy = 0;
 
 	PPNext(this);
 	PPGetCurrent(&currentInput, this);
@@ -454,15 +453,15 @@ static void ProcessPragma_Loop(void *this)
 		string = PPGetString(&currentInput);
 		if (sceClibStrcmp(string, "always") == 0)
 		{
-			unrollPolicy = 0;
+			_SetUnrollPolicy(*(void **)(this + 0xc), 0);
 		}
 		else if (sceClibStrcmp(string, "never") == 0)
 		{
-			unrollPolicy = 1;
+		_SetUnrollPolicy(*(void **)(this + 0xc), 1);
 		}
 		else if (sceClibStrcmp(string, "default") == 0)
 		{
-			unrollPolicy = 2;
+			_SetUnrollPolicy(*(void **)(this + 0xc), 2);
 		}
 		else
 		{
@@ -471,7 +470,6 @@ static void ProcessPragma_Loop(void *this)
 			return;
 		}
 
-		_SetUnrollPolicy(*(void **)(this + 0xc), unrollPolicy);
 
 		PPNext(this);
 		PPGetCurrent(&currentInput, this);
@@ -503,7 +501,6 @@ static void ProcessPragma_Branch(void *this)
 	PPInput currentInput;
 	char *string;
 	void (*_SetFlattenPolicy)(void *, int) = (typeof(_SetFlattenPolicy))*(void **)(**(uintptr_t **)(this + 0xc) + 0xC);
-	int flattenPolicy = 0;
 
 	PPNext(this);
 	PPGetCurrent(&currentInput, this);
@@ -558,15 +555,15 @@ static void ProcessPragma_Branch(void *this)
 		string = PPGetString(&currentInput);
 		if (sceClibStrcmp(string, "always") == 0)
 		{
-			flattenPolicy = 0;
+		_SetFlattenPolicy(*(void **)(this + 0xc), 0);
 		}
 		else if (sceClibStrcmp(string, "never") == 0)
 		{
-			flattenPolicy = 1;
+		_SetFlattenPolicy(*(void **)(this + 0xc), 1);
 		}
 		else if (sceClibStrcmp(string, "default") == 0)
 		{
-			flattenPolicy = 2;
+			_SetFlattenPolicy(*(void **)(this + 0xc), 2);
 		}
 		else
 		{
@@ -575,7 +572,6 @@ static void ProcessPragma_Branch(void *this)
 			return;
 		}
 
-		_SetFlattenPolicy(*(void **)(this + 0xc), flattenPolicy);
 
 		PPNext(this);
 		PPGetCurrent(&currentInput, this);
