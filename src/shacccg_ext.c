@@ -9,6 +9,12 @@
 
 #include "sce_intrinsics.h"
 
+#ifdef NDEBUG
+#define LOG(level, msg, args...)
+#else
+#define LOG(level, msg, args...) sceClibPrintf("[SceShaccCgExt  ] - %s:%d:"#level":"msg"\n", __func__, __LINE__);
+#endif
+
 #define ENCODE_MOV_IMM(inst0, inst1, imm)                              \
 	inst0 |= ((((imm & 0x800) >> 11) << 10) | ((imm & 0xF000) >> 12)); \
 	inst1 |= ((imm & 0xFF) | (((imm & 0x700) >> 8) << 12))
@@ -18,7 +24,7 @@
 static const char *cgStdLib;
 static bool (*LoadInternalString)(void *, const char *); // FUN_812011ec
 
-static SceUID injectIds[4] = {-1, -1, -1, -1};
+static SceUID injectIds[6] = {-1, -1, -1, -1, -1, -1};
 static SceUID hookId = -1;
 
 static tai_hook_ref_t hookRef;
@@ -45,10 +51,25 @@ static void *FUN_811fe7a4_patch(uint32_t param_1, uint32_t param_2, uint32_t par
 	return TAI_CONTINUE(void *, hookRef, param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8);
 }
 
-int PatchShacc(SceUID moduleId)
+int sceShaccCgExtEnableExtensions()
 {
+	tai_module_info_t taiModuleInfo = {0};
 	SceKernelModuleInfo moduleInfo = {0};
+	SceUID moduleId = -1;
 	moduleInfo.size = sizeof(moduleInfo);
+	taiModuleInfo.size = sizeof(taiModuleInfo);
+
+	if (taiGetModuleInfo("SceShaccCg", &taiModuleInfo) < 0)
+	{
+		LOG(ERROR, "SceShaccCg module is not loaded");
+		goto fail;
+	}
+
+	if (taiModuleInfo.module_nid != 0)
+	{
+		LOG(ERROR, "SceShaccCg module NID is not as expected");
+		goto fail;
+	}
 
 	// Patch stdlib load. Allows for loading custom internal source code.
 	uint16_t internalSourcePatch[] =
@@ -81,10 +102,19 @@ int PatchShacc(SceUID moduleId)
 			0xF000, 0xB8B0 // b.w #0x164
 		};
 
+	uint16_t moduleUnloadPatch[] = 
+	{
+		0xF240, 0x0300, // movw r3, #0x...
+		0xF2C0, 0x0300, // movt r3, #0x...
+		0x4718          // bx r3
+	};
+
 	ENCODE_MOV_IMM(internalSourcePatch[0], internalSourcePatch[1], (uint32_t)(LoadInternalString_patch)&0xFFFF);
 	ENCODE_MOV_IMM(internalSourcePatch[2], internalSourcePatch[3], (uint32_t)(LoadInternalString_patch) >> 16);
 	ENCODE_MOV_IMM(pragmaPatch[0], pragmaPatch[1], (uint32_t)(ProcessPragma_patch)&0xFFFF);
 	ENCODE_MOV_IMM(pragmaPatch[2], pragmaPatch[3], (uint32_t)(ProcessPragma_patch) >> 16);
+	ENCODE_MOV_IMM(moduleUnloadPatch[0], moduleUnloadPatch[1], (uint32_t)(sceShaccCgExtDisableExtensions)&0xFFFF);
+	ENCODE_MOV_IMM(moduleUnloadPatch[2], moduleUnloadPatch[3], (uint32_t)(sceShaccCgExtDisableExtensions) >> 16);
 
 	if (sceKernelGetModuleInfo(moduleId, &moduleInfo) < 0)
 		goto fail;
@@ -106,6 +136,12 @@ int PatchShacc(SceUID moduleId)
 	injectIds[3] = taiInjectData(moduleId, 0, 0x201B9C, &nostdlibPatch[2], sizeof(uint16_t) * 3);
 	if (injectIds[3] < 0)
 		goto fail;
+	injectIds[4] = taiInjectData(moduleId, 0, 0x201B9C, &moduleUnloadPatch[0], sizeof(moduleUnloadPatch));
+	if (injectIds[4] < 0)
+		goto fail;
+	injectIds[5] = taiInjectData(moduleId, 0, 0x201B9C, &moduleUnloadPatch[0], sizeof(moduleUnloadPatch));
+	if (injectIds[5] < 0)
+		goto fail;
 
 	hookId = taiHookFunctionOffset(&hookRef, moduleId, 0, 0x1FE7A4, 1, FUN_811fe7a4_patch);
 	if (hookId < 0)
@@ -113,14 +149,18 @@ int PatchShacc(SceUID moduleId)
 
 	return 0;
 fail:
-	ReleasePatches();
+	sceShaccCgExtDisableExtensions();
 	return -1;
 }
 
-void ReleasePatches()
+void sceShaccCgExtDisableExtensions()
 {
 	if (hookId > 0)
 		taiHookRelease(hookId, hookRef);
+	if (injectIds[5] > 0)
+		taiInjectRelease(injectIds[5]);
+	if (injectIds[4] > 0)
+		taiInjectRelease(injectIds[4]);
 	if (injectIds[3] > 0)
 		taiInjectRelease(injectIds[3]);
 	if (injectIds[2] > 0)
@@ -129,6 +169,9 @@ void ReleasePatches()
 		taiInjectRelease(injectIds[1]);
 	if (injectIds[0] > 0)
 		taiInjectRelease(injectIds[0]);
+
+	sceClibMemset(&injectIds[0], -1, sizeof(injectIds));
+	hookId = -1;
 }
 
 /******************************************************************

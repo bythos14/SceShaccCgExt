@@ -1,5 +1,5 @@
-#ifndef _PATCHES_H_
-#define _PATCHES_H_
+#ifndef _SHACCCG_EXT_H_
+#define _SHACCCG_EXT_H_
 
 #include <psp2/types.h>
 
@@ -7,12 +7,21 @@
 extern "C" {
 #endif
 
-int PatchShacc(SceUID moduleId);
+/**
+ * @brief Enables extensions through module patches
+ * 
+ * @return 0 on success, -1 on failure
+ */
+int sceShaccCgExtEnableExtensions();
 
-void ReleasePatches();
+/**
+ * @brief Release extension patches
+ * 
+ */
+void sceShaccCgExtDisableExtensions();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PATCHES_H_ */
+#endif /* _SHACCCG_EXT_H_ */
