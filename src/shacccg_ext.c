@@ -22,6 +22,7 @@
 #define FUNCTION_PTR(functionPointer, segmentBase, offset, thumb) functionPointer = (typeof(functionPointer))(((uintptr_t)segmentBase + offset) | thumb)
 
 static const char *cgStdLib;
+static const SceShaccCgSourceFile *internalSourceFile;
 static bool (*LoadInternalString)(void *, const char *); // FUN_812011ec
 
 static SceUID injectIds[6] = {-1, -1, -1, -1, -1, -1};
@@ -40,6 +41,9 @@ static bool LoadInternalString_patch(void *param_1, bool nostdlib)
 	if (!nostdlib && !LoadInternalString(param_1, cgStdLib))
 		return false;
 
+	if (internalSourceFile != NULL && !LoadInternalString(param_1, internalSourceFile->text))
+		return false;
+
 	return true;
 }
 
@@ -49,6 +53,11 @@ static void *FUN_811fe7a4_patch(uint32_t param_1, uint32_t param_2, uint32_t par
 	*(uint8_t *)(param_7 + 0x14) = 1;									   // Extension support
 
 	return TAI_CONTINUE(void *, hookRef, param_1, param_2, param_3, param_4, param_5, param_6, param_7, param_8);
+}
+
+void sceShaccCgExtSetInternalSourceFile(const SceShaccCgSourceFile *sourceFile)
+{
+	internalSourceFile = sourceFile;
 }
 
 int sceShaccCgExtEnableExtensions()
