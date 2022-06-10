@@ -12,7 +12,7 @@
 #ifdef NDEBUG
 #define LOG(level, msg, args...)
 #else
-#define LOG(level, msg, args...) sceClibPrintf("[SceShaccCgExt  ] - %s:%d:"#level":"msg"\n", __func__, __LINE__);
+#define LOG(level, msg, args...) sceClibPrintf("[SceShaccCgExt  ] - %s:%d:"#level":"msg"\n", __func__, __LINE__, ##args);
 #endif
 
 #define ENCODE_MOV_IMM(inst0, inst1, imm)                              \
@@ -74,11 +74,13 @@ int sceShaccCgExtEnableExtensions()
 		goto fail;
 	}
 
-	if (taiModuleInfo.module_nid != 0)
+	if (taiModuleInfo.module_nid != 0xEE15880D)
 	{
 		LOG(ERROR, "SceShaccCg module NID is not as expected");
 		goto fail;
 	}
+
+	moduleId = taiModuleInfo.modid;
 
 	// Patch stdlib load. Allows for loading custom internal source code.
 	uint16_t internalSourcePatch[] =
@@ -145,10 +147,10 @@ int sceShaccCgExtEnableExtensions()
 	injectIds[3] = taiInjectData(moduleId, 0, 0x201B9C, &nostdlibPatch[2], sizeof(uint16_t) * 3);
 	if (injectIds[3] < 0)
 		goto fail;
-	injectIds[4] = taiInjectData(moduleId, 0, 0x201B9C, &moduleUnloadPatch[0], sizeof(moduleUnloadPatch));
+	injectIds[4] = taiInjectData(moduleId, 0, 0x204242, &moduleUnloadPatch[0], sizeof(moduleUnloadPatch));
 	if (injectIds[4] < 0)
 		goto fail;
-	injectIds[5] = taiInjectData(moduleId, 0, 0x201B9C, &moduleUnloadPatch[0], sizeof(moduleUnloadPatch));
+	injectIds[5] = taiInjectData(moduleId, 0, 0x20425A, &moduleUnloadPatch[0], sizeof(moduleUnloadPatch));
 	if (injectIds[5] < 0)
 		goto fail;
 
@@ -258,8 +260,8 @@ static void *(*FUN_81009884)();
 static void *(*_HeapAlloc)(void *, size_t);
 static void (*_HeapFree)(void *);
 
-static void (*_AtomicIncrement)(uint32_t *);
-static uint32_t (*_AtomicDecrement)(uint32_t *);
+void (*_AtomicIncrement)(uint32_t *);
+uint32_t (*_AtomicDecrement)(uint32_t *);
 
 static void GetPragmaFunctionPointers(void *segment0)
 {

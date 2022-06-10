@@ -11,8 +11,8 @@ endif()
 project(SceShaccCgExt)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -Wall -Iinclude")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -Wall -fno-exceptions -fno-rtti -std=gnu++11 -fpermissive -Iinclude")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon -fno-optimize-sibling-calls -ftree-vectorize -Wall -fno-exceptions -fno-rtti -std=gnu++11 -fpermissive")
 
 add_library(${PROJECT_NAME}
   include/shacccg_ext.h
