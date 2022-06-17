@@ -74,7 +74,7 @@ int sceShaccCgExtEnableExtensions()
 		goto fail;
 	}
 
-	if (taiModuleInfo.module_nid != 0xEE15880D)
+	if (taiModuleInfo.module_nid != 0xEE15880D && taiModuleInfo.module_nid != 0x6C3C7547)
 	{
 		LOG(ERROR, "SceShaccCg module NID is not as expected");
 		goto fail;
@@ -160,6 +160,7 @@ int sceShaccCgExtEnableExtensions()
 
 	return 0;
 fail:
+	LOG(ERROR, "Failed to apply patches");
 	sceShaccCgExtDisableExtensions();
 	return -1;
 }
