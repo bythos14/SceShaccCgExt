@@ -25,8 +25,10 @@ static const char *cgStdLib;
 static const SceShaccCgSourceFile *internalSourceFile;
 static bool (*LoadInternalString)(void *, const char *); // FUN_812011ec
 
-static SceUID injectIds[6] = {-1, -1, -1, -1, -1, -1};
+static SceUID moduleId = -1;
+static SceUID injectIds[7] = {-1, -1, -1, -1, -1, -1, -1}; // Inject 6 is for the secondary limit patch
 static SceUID hookId = -1;
+static SceUInt vertexSaRegLimit = SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_DEFAULT; 
 
 static tai_hook_ref_t hookRef;
 
@@ -64,7 +66,6 @@ int sceShaccCgExtEnableExtensions()
 {
 	tai_module_info_t taiModuleInfo = {0};
 	SceKernelModuleInfo moduleInfo = {0};
-	SceUID moduleId = -1;
 	moduleInfo.size = sizeof(moduleInfo);
 	taiModuleInfo.size = sizeof(taiModuleInfo);
 
@@ -169,6 +170,8 @@ void sceShaccCgExtDisableExtensions()
 {
 	if (hookId > 0)
 		taiHookRelease(hookId, hookRef);
+	if (injectIds[6] > 0)
+		taiInjectRelease(injectIds[6]);
 	if (injectIds[5] > 0)
 		taiInjectRelease(injectIds[5]);
 	if (injectIds[4] > 0)
@@ -184,6 +187,53 @@ void sceShaccCgExtDisableExtensions()
 
 	sceClibMemset(&injectIds[0], -1, sizeof(injectIds));
 	hookId = -1;
+	moduleId = -1;
+}
+
+int sceShaccCgExtSetVertexSecondaryLimit(SceUInt limit)
+{
+	if (limit > SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_512)
+	{
+		LOG(ERROR, "Invalid limit");
+		return -1;
+	}
+	
+	if (moduleId == -1)
+	{
+		LOG(ERROR, "Extensions are not been enabled");
+		return -1;
+	}
+
+	if (injectIds[6] != -1 && vertexSaRegLimit != limit) // If a patch has been applied before, release it
+	{
+		taiInjectRelease(injectIds[6]);
+		injectIds[6] = -1;
+	}
+
+	if ((limit == SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_DEFAULT) || (vertexSaRegLimit == limit)) // No patch is necessary
+		goto exit;
+
+	uint16_t saRegLimitPatch[3] =
+		{
+			0x2080, // mov r0, #0x80     This is the default in ShaccCg
+			/**
+			 * Can't encode more than 8-bits in a 16-bit mov instruction
+			 * r2 has a value of 1 at this point, so we'll do a logical shift to get the value we want.
+			 */
+			0x0210, // lsl r0, r2, #0x8
+			0x0250	// lsl r0, r2, #0x9
+		};
+
+	injectIds[6] = taiInjectData(moduleId, 0, 0x127a80, &saRegLimitPatch[limit], sizeof(uint16_t));
+	if (injectIds[6] < 0)
+	{
+		LOG(ERROR, "Failed to apply patch for secondary limit");
+		return -1;
+	}
+
+exit:
+	vertexSaRegLimit = limit;
+	return 0;
 }
 
 /******************************************************************

@@ -8,6 +8,12 @@
 extern "C" {
 #endif
 
+#define SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_128 0
+#define SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_256 1
+#define SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_512 2
+
+#define SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_DEFAULT SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_128
+
 /**
  * @brief Enables extensions through module patches
  * 
@@ -32,6 +38,16 @@ void sceShaccCgExtDisableExtensions();
  * @note The sourceFile is not copied by this function.
  */
 void sceShaccCgExtSetInternalSourceFile(const SceShaccCgSourceFile *sourceFile);
+
+/**
+ * @brief Set the limit on vertex program SA register count
+ *
+ * By default the limit is 128 SA registers, but the hardware can support up to 512 SA registers for the vertex program.
+ *
+ * @param limit - One of SCE_SHACCCG_EXT_VERTEX_SA_REG_LIMIT_(128/256/512)
+ * @return 0 on success, -1 on failure
+ */
+int sceShaccCgExtSetVertexSecondaryLimit(SceUInt limit);
 
 #ifdef __cplusplus
 }
